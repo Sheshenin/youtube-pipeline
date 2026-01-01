@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>YouTube Shorts Pipeline</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap");
+      :root {
+        --ink: #111827;
+        --muted: #6b7280;
+        --card: #ffffff;
+        --accent: #0f766e;
+        --bg: radial-gradient(circle at top, #fef3c7 0%, #e5e7eb 55%, #f1f5f9 100%);
+      }
+      body {
+        font-family: "Space Grotesk", sans-serif;
+        margin: 0;
+        padding: 32px;
+        background: var(--bg);
+        color: var(--ink);
+      }
+      .container {
+        max-width: 820px;
+        margin: 0 auto;
+        background: #ffffff;
+        padding: 28px 32px;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+      }
+      h1 {
+        margin: 0 0 12px;
+        font-size: 28px;
+      }
+      p {
+        margin: 0 0 24px;
+        color: var(--muted);
+      }
+      form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+      }
+      label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+      input {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 8px;
+        border: 1px solid #d1d5db;
+        font-size: 14px;
+      }
+      .full {
+        grid-column: 1 / -1;
+      }
+      .actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        grid-column: 1 / -1;
+      }
+      button {
+        background: var(--accent);
+        color: #ffffff;
+        padding: 10px 16px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .note {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 6px;
+      }
+      .result {
+        margin-top: 24px;
+        padding: 16px;
+        border-radius: 10px;
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+      }
+      .error {
+        margin-top: 24px;
+        padding: 16px;
+        border-radius: 10px;
+        background: #fee2e2;
+        border: 1px solid #fca5a5;
+        color: #991b1b;
+      }
+      .disabled {
+        background: #f3f4f6;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>YouTube Shorts Pipeline</h1>
+      <p>Find Shorts, enrich them, and export results to Google Sheets.</p>
+
+      <form method="post" action="/run">
+        <div class="full">
+          <label for="topic">Topic</label>
+          <input
+            id="topic"
+            name="topic"
+            type="text"
+            placeholder="e.g., espresso brewing"
+            required
+            value="{{ defaults.topic }}"
+          />
+        </div>
+
+        <div>
+          <label for="language">Language</label>
+          <input id="language" name="language" type="text" value="{{ defaults.language }}" />
+        </div>
+
+        <div>
+          <label for="region">Region</label>
+          <input id="region" name="region" type="text" value="{{ defaults.region }}" />
+        </div>
+
+        <div>
+          <label for="days">Days</label>
+          <input id="days" name="days" type="number" min="1" max="3650" value="{{ defaults.days }}" />
+        </div>
+
+        <div>
+          <label for="min_results">Min Shorts</label>
+          <input
+            id="min_results"
+            name="min_results"
+            type="number"
+            min="1"
+            max="1000"
+            value="{{ defaults.min_results }}"
+          />
+        </div>
+
+        <div>
+          <label>Only Shorts</label>
+          <input class="disabled" type="text" value="Enabled" disabled />
+          <div class="note">Shorts-only filtering is always on.</div>
+        </div>
+
+        <div class="actions">
+          <button type="submit">Run Pipeline</button>
+        </div>
+      </form>
+
+      {% if error %}
+      <div class="error">{{ error }}</div>
+      {% endif %}
+
+      {% if result %}
+      <div class="result">
+        <strong>Done.</strong><br />
+        Topic: {{ result.topic }}<br />
+        Queries: {{ result.query_count }}<br />
+        Shorts: {{ result.shorts_count }}<br />
+        Rows written: {{ result.rows_written }}
+      </div>
+      {% endif %}
+    </div>
+  </body>
+</html>
