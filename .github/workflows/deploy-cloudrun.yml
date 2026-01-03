@@ -1,0 +1,84 @@
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: ${{ vars.GCP_PROJECT_ID || secrets.GCP_PROJECT_ID }}
+  REGION: ${{ vars.GCP_REGION || 'europe-west6' }}
+  SERVICE_NAME: youtube-pipeline-web
+  ARTIFACT_REPO: youtube-pipeline
+  IMAGE_NAME: webapp
+  CLOUD_RUN_CPU: "2"
+  CLOUD_RUN_MEMORY: 2Gi
+  CLOUD_RUN_CONCURRENCY: "2"
+  CLOUD_RUN_MAX_INSTANCES: "20"
+  WEBAPP_AUTH_TTL_SECONDS: "86400"
+  WEBAPP_MAX_CODE_ATTEMPTS: "5"
+  WEBAPP_LOCKOUT_SECONDS: "300"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          token_format: access_token
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up gcloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Configure Artifact Registry auth
+        run: gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+
+      - name: Compute artifact references
+        run: |
+          IMAGE_PATH="${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPO}/${IMAGE_NAME}:${GITHUB_SHA}"
+          echo "IMAGE_PATH=${IMAGE_PATH}" >> "$GITHUB_ENV"
+          echo "RUNTIME_SA=webapp-runner@${PROJECT_ID}.iam.gserviceaccount.com" >> "$GITHUB_ENV"
+
+      - name: Build and push image with Cloud Build
+        run: |
+          gcloud builds submit \
+            --project="${PROJECT_ID}" \
+            --tag "${IMAGE_PATH}" \
+            --quiet
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy "${SERVICE_NAME}" \
+            --project="${PROJECT_ID}" \
+            --region="${REGION}" \
+            --image="${IMAGE_PATH}" \
+            --service-account="${RUNTIME_SA}" \
+            --platform=managed \
+            --allow-unauthenticated \
+            --concurrency="${CLOUD_RUN_CONCURRENCY}" \
+            --max-instances="${CLOUD_RUN_MAX_INSTANCES}" \
+            --cpu="${CLOUD_RUN_CPU}" \
+            --memory="${CLOUD_RUN_MEMORY}" \
+            --port=8080 \
+            --set-secrets="WEBAPP_ACCESS_CODE=WEBAPP_ACCESS_CODE:latest,WEBAPP_SESSION_SECRET=WEBAPP_SESSION_SECRET:latest" \
+            --set-env-vars="WEBAPP_AUTH_TTL_SECONDS=${WEBAPP_AUTH_TTL_SECONDS},WEBAPP_MAX_CODE_ATTEMPTS=${WEBAPP_MAX_CODE_ATTEMPTS},WEBAPP_LOCKOUT_SECONDS=${WEBAPP_LOCKOUT_SECONDS}" \
+            --quiet
+
+      - name: Show service URL
+        run: |
+          gcloud run services describe "${SERVICE_NAME}" \
+            --project="${PROJECT_ID}" \
+            --region="${REGION}" \
+            --format='value(status.url)'
