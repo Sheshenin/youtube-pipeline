@@ -5,7 +5,13 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from pipeline.config import DEFAULT_DAYS, DEFAULT_LANGUAGE, DEFAULT_MIN_RESULTS, DEFAULT_REGION
+from pipeline.config import (
+    DEFAULT_DAYS,
+    DEFAULT_LANGUAGE,
+    DEFAULT_MIN_RESULTS,
+    DEFAULT_REGION,
+    VERSION,
+)
 from pipeline.run import run_pipeline
 
 app = FastAPI()
@@ -18,6 +24,7 @@ templates = Jinja2Templates(directory="webapp/templates")
 def index(request: Request) -> HTMLResponse:
     context = {
         "request": request,
+        "version": VERSION,
         "defaults": {
             "topic": "",
             "language": DEFAULT_LANGUAGE,
@@ -55,6 +62,7 @@ def run(
 
     context = {
         "request": request,
+        "version": VERSION,
         "defaults": {
             "topic": topic,
             "language": language,
