@@ -32,9 +32,23 @@ except ImportError:  # pragma: no cover - allow degraded mode without dependency
     YouTubeTranscriptApi = _MissingTranscriptApi()  # type: ignore[assignment]
 
 logger = logging.getLogger(__name__)
+load_dotenv()
+
+DEFAULT_PROVIDER = "youtube"
+DEFAULT_LANGUAGE = "en"
 
 
-def fetch_transcript(video_id: str | None) -> str:
+class TranscriptNotConfiguredError(RuntimeError):
+    """Raised when transcript fetching is not configured."""
+
+
+def fetch_transcript(video_id: str | None, language: str | None = None) -> str:
+    """
+    Fetch a transcript for the given video.
+
+    Provider selection is driven by TRANSCRIPT_PROVIDER env var (default: youtube).
+    Language defaults to TRANSCRIPT_LANGUAGE or 'en'.
+    """
     if not video_id:
         return ""
 
