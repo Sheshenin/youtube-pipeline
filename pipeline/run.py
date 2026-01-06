@@ -45,7 +45,7 @@ def _view_count(value: str | None) -> int:
         return 0
 
 
-def run_pipeline(
+def collect_shorts(
     topic: str,
     language: str = DEFAULT_LANGUAGE,
     region: str = DEFAULT_REGION,
@@ -93,9 +93,25 @@ def run_pipeline(
 
     logger.info("Found %d shorts", len(results))
 
+    return {
+        "topic": topic,
+        "queries": queries,
+        "results": results,
+    }
+
+
+def attach_transcripts(results: list[dict], language: str) -> list[dict]:
+    with_transcripts: list[dict] = []
+    for video in results:
+        transcript = fetch_transcript(video.get("id"), language=language)
+        with_transcripts.append({**video, "transcript": transcript})
+    return with_transcripts
+
+
+def finalize_results(topic: str, queries: list[str], results: list[dict]) -> dict:
     rows = []
     for video in results:
-        transcript = fetch_transcript(video.get("id"))
+        transcript = video.get("transcript") or fetch_transcript(video.get("id"))
         translation = translate_text(transcript, target_language="ru")
         row = {
             **video,
@@ -112,6 +128,24 @@ def run_pipeline(
         "shorts_count": len(results),
         "rows_written": len(rows),
     }
+
+
+def run_pipeline(
+    topic: str,
+    language: str = DEFAULT_LANGUAGE,
+    region: str = DEFAULT_REGION,
+    days: int = DEFAULT_DAYS,
+    min_results: int = DEFAULT_MIN_RESULTS,
+) -> dict:
+    collection = collect_shorts(
+        topic=topic,
+        language=language,
+        region=region,
+        days=days,
+        min_results=min_results,
+    )
+    results_with_transcripts = attach_transcripts(collection["results"], language=language)
+    return finalize_results(topic, queries=collection["queries"], results=results_with_transcripts)
 
 
 def main() -> None:
