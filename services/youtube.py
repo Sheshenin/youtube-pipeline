@@ -14,6 +14,10 @@ BASE_URL = "https://www.googleapis.com/youtube/v3"
 DEFAULT_TIMEOUT = 20
 
 
+class MissingYouTubeApiKeyError(RuntimeError):
+    """Raised when the YouTube API key is not configured."""
+
+
 def search_videos(
     query: str,
     region: str,
@@ -21,10 +25,7 @@ def search_videos(
     published_after: str,
     max_results: int = 50,
 ) -> list[str]:
-    api_key = _get_api_key()
-    if not api_key:
-        logger.error("Missing YOUTUBE_API_KEY in environment.")
-        return []
+    api_key = _require_api_key()
 
     params = {
         "part": "snippet",
@@ -50,14 +51,11 @@ def search_videos(
 
 
 def get_video_details(video_ids: Iterable[str]) -> list[dict]:
-    api_key = _get_api_key()
-    if not api_key:
-        logger.error("Missing YOUTUBE_API_KEY in environment.")
-        return []
-
     ids = [video_id for video_id in video_ids if video_id]
     if not ids:
         return []
+
+    api_key = _require_api_key()
 
     results: list[dict] = []
     for chunk in _chunked(ids, 50):
@@ -92,8 +90,13 @@ def get_video_details(video_ids: Iterable[str]) -> list[dict]:
     return results
 
 
-def _get_api_key() -> str | None:
-    return os.getenv("YOUTUBE_API_KEY")
+def _require_api_key() -> str:
+    api_key = os.getenv("YOUTUBE_API_KEY")
+    if not api_key:
+        message = "Set YOUTUBE_API_KEY in environment or .env"
+        logger.error(message)
+        raise MissingYouTubeApiKeyError(message)
+    return api_key
 
 
 def _request(endpoint: str, params: dict) -> dict:
