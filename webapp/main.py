@@ -14,6 +14,7 @@ from pipeline.config import (
     DEFAULT_REGION,
     VERSION,
 )
+from pipeline.run import run_pipeline
 from pipeline.run import collect_shorts, enrich_results, run_pipeline
 from services.query_expander import expand_queries
 from services.sheets import write_rows
