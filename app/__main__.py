@@ -17,7 +17,13 @@ from PySide6.QtWidgets import (
     QPlainTextEdit,
 )
 
-from pipeline.config import DEFAULT_DAYS, DEFAULT_LANGUAGE, DEFAULT_MIN_RESULTS, DEFAULT_REGION
+from pipeline.config import (
+    DEFAULT_DAYS,
+    DEFAULT_LANGUAGE,
+    DEFAULT_MIN_RESULTS,
+    DEFAULT_REGION,
+    VERSION,
+)
 from pipeline.run import run_pipeline
 
 
@@ -57,7 +63,7 @@ class PipelineWorker(QObject):
 class MainWindow(QWidget):
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("YouTube Shorts Pipeline")
+        self.setWindowTitle(f"YouTube Shorts Pipeline v{VERSION}")
 
         self.topic_input = QLineEdit()
         self.language_input = QLineEdit(DEFAULT_LANGUAGE)
