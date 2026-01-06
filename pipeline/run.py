@@ -108,7 +108,7 @@ def attach_transcripts(results: list[dict], language: str) -> list[dict]:
     return with_transcripts
 
 
-def finalize_results(topic: str, queries: list[str], results: list[dict]) -> dict:
+def enrich_results(results: list[dict]) -> list[dict]:
     rows = []
     for video in results:
         transcript = video.get("transcript") or fetch_transcript(video.get("id"))
@@ -119,6 +119,11 @@ def finalize_results(topic: str, queries: list[str], results: list[dict]) -> dic
             "translation": translation,
         }
         rows.append(row)
+    return rows
+
+
+def finalize_results(topic: str, queries: list[str], results: list[dict]) -> dict:
+    rows = enrich_results(results)
 
     write_rows(rows)
 
