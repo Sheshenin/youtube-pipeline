@@ -46,7 +46,7 @@ def _view_count(value: str | None) -> int:
         return 0
 
 
-def run_pipeline(
+def collect_shorts(
     topic: str,
     language: str = DEFAULT_LANGUAGE,
     region: str = DEFAULT_REGION,
@@ -101,6 +101,14 @@ def run_pipeline(
 
     logger.info("Found %d shorts", len(results))
 
+    return {
+        "topic": topic,
+        "queries": queries,
+        "results": results,
+    }
+
+
+def enrich_results(results: list[dict]) -> list[dict]:
     rows = []
     for video in results:
         transcript = fetch_transcript(video.get("id"))
@@ -111,13 +119,30 @@ def run_pipeline(
             "translation": translation,
         }
         rows.append(row)
+    return rows
 
+
+def run_pipeline(
+    topic: str,
+    language: str = DEFAULT_LANGUAGE,
+    region: str = DEFAULT_REGION,
+    days: int = DEFAULT_DAYS,
+    min_results: int = DEFAULT_MIN_RESULTS,
+) -> dict:
+    collection = collect_shorts(
+        topic=topic,
+        language=language,
+        region=region,
+        days=days,
+        min_results=min_results,
+    )
+    rows = enrich_results(collection["results"])
     write_rows(rows)
 
     return {
         "topic": topic,
-        "query_count": len(queries),
-        "shorts_count": len(results),
+        "query_count": len(collection["queries"]),
+        "shorts_count": len(collection["results"]),
         "rows_written": len(rows),
         "items": [
             {"url": row.get("url"), "transcript": row.get("transcript")}
