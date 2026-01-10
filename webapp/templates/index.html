@@ -83,6 +83,28 @@
         background: #f9fafb;
         border: 1px solid #e5e7eb;
       }
+      .transcript-list {
+        margin-top: 16px;
+        display: grid;
+        gap: 12px;
+      }
+      .transcript-card {
+        padding: 12px;
+        border-radius: 8px;
+        border: 1px solid #e5e7eb;
+        background: #ffffff;
+      }
+      .transcript-card a {
+        color: var(--accent);
+        font-weight: 600;
+        text-decoration: none;
+      }
+      .transcript-text {
+        margin-top: 8px;
+        color: var(--ink);
+        font-size: 14px;
+        white-space: pre-wrap;
+      }
       .error {
         margin-top: 24px;
         padding: 16px;
@@ -163,6 +185,21 @@
         Queries: {{ result.query_count }}<br />
         Shorts: {{ result.shorts_count }}<br />
         Rows written: {{ result.rows_written }}
+
+        {% if result["items"] %}
+        <div class="transcript-list">
+          {% for item in result["items"] %}
+          <div class="transcript-card">
+            <div>
+              <a href="{{ item.url }}" target="_blank" rel="noopener noreferrer">{{ item.url }}</a>
+            </div>
+            <div class="transcript-text">
+              {{ item.transcript if item.transcript else "Transcript not available." }}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
       </div>
       {% endif %}
     </div>
