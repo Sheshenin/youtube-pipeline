@@ -10,6 +10,7 @@ from pipeline.config import (
     DEFAULT_LANGUAGE,
     DEFAULT_MIN_RESULTS,
     DEFAULT_REGION,
+    MAX_SELECTED_SHORTS,
 )
 from pipeline.shorts import is_short_duration
 from services.query_expander import expand_queries, extend_queries
@@ -54,13 +55,14 @@ def run_pipeline(
 ) -> dict:
     logger.info("Starting pipeline for topic: %s", topic)
 
+    target_count = min(min_results, MAX_SELECTED_SHORTS)
     published_after = _published_after(days)
     queries = expand_queries(topic, language=language)
     results: list[dict] = []
     seen_ids: set[str] = set()
 
     query_index = 0
-    while len(results) < min_results and query_index < len(queries):
+    while len(results) < target_count and query_index < len(queries):
         query = queries[query_index]
         query_index += 1
 
@@ -84,12 +86,18 @@ def run_pipeline(
                 continue
             seen_ids.add(video_id)
             results.append(video)
+            if len(results) >= target_count:
+                break
 
-        if len(results) < min_results and query_index >= len(queries):
+        if len(results) >= target_count:
+            break
+
+        if len(results) < target_count and query_index >= len(queries):
             queries = extend_queries(topic, existing=queries, language=language)
 
     results = _dedupe(results, key="id")
     results.sort(key=lambda item: _view_count(item.get("view_count")), reverse=True)
+    results = results[:target_count]
 
     logger.info("Found %d shorts", len(results))
 
@@ -111,6 +119,10 @@ def run_pipeline(
         "query_count": len(queries),
         "shorts_count": len(results),
         "rows_written": len(rows),
+        "items": [
+            {"url": row.get("url"), "transcript": row.get("transcript")}
+            for row in rows
+        ],
     }
 
 
